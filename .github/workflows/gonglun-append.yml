@@ -1,0 +1,172 @@
+name: Gonglun append
+on:
+  workflow_dispatch:
+    inputs:
+      path:
+        description: Repository-relative discussion file
+        required: true
+        type: string
+      delta:
+        description: Gonglun meeting delta v1 (JSON)
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  append:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Append discussion records
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: node {0}
+        run: |
+          const { readFileSync, mkdtempSync } = require('node:fs');
+          const { join } = require('node:path');
+          const { createHash } = require('node:crypto');
+          const { spawnSync } = require('node:child_process');
+          const { isDeepStrictEqual } = require('node:util');
+          const { setTimeout: delay } = require('node:timers/promises');
+          const maxBytes = 32 * 1024 * 1024;
+          const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+          class AppendError extends Error {}
+          function check(ok, message) {
+            if (!ok) throw new AppendError(message);
+          }
+          function parse(text) {
+            try { return JSON.parse(text); }
+            catch { throw new AppendError('Invalid discussion JSON.'); }
+          }
+          function onlyKeys(value, allowed) {
+            return value && typeof value === 'object' && !Array.isArray(value) &&
+              Object.keys(value).every(key => allowed.includes(key));
+          }
+          function validId(value, prefix) {
+            return typeof value === 'string' && value.startsWith(prefix) && uuid.test(value.slice(prefix.length));
+          }
+          function isoDate(value) {
+            return typeof value === 'string' && Number.isFinite(Date.parse(value)) && new Date(value).toISOString() === value;
+          }
+          function validateEntry(row) {
+            const keys = ['id', 'speakerId', 'speaker', 'at', 'type'];
+            check(row && validId(row.id, 'local:') && validId(row.speakerId, 'local:user:') &&
+              typeof row.speaker === 'string' && row.speaker.trim() && row.speaker.length <= 200 &&
+              isoDate(row.at), 'Invalid record identity, speaker or date.');
+            if (row.type === 'text') {
+              check(onlyKeys(row, [...keys, 'text']) && typeof row.text === 'string' && row.text.trim(), 'Invalid text record.');
+            } else {
+              check(row.type === 'reply' && onlyKeys(row, [...keys, 'source', 'targets']) && validId(row.source, 'local:') &&
+                Array.isArray(row.targets) && row.targets.length && row.targets.every(id => validId(id, 'local:')) &&
+                new Set(row.targets).size === row.targets.length && !row.targets.includes(row.source), 'Invalid reply record.');
+            }
+          }
+          function appendRecords(bytes, delta) {
+            const raw = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes);
+            check(raw.endsWith('\n'), 'Incomplete discussion file.');
+            const [first, ...lines] = raw.slice(0, -1).split('\n');
+            const header = parse(first);
+            check(header?.format === 'gonglun-git-meeting' && header.version === 1 && header.id === delta.meetingId &&
+              typeof header.title === 'string' && header.title.trim() && isoDate(header.createdAt), 'Discussion header mismatch.');
+            const byId = new Map();
+            for (const line of lines) {
+              const row = parse(line);
+              validateEntry(row);
+              check(!byId.has(row.id), 'The existing file contains a duplicate ID.');
+              byId.set(row.id, row);
+            }
+            const tail = [];
+            for (const row of delta.entries) {
+              validateEntry(row);
+              if (byId.has(row.id)) {
+                check(isDeepStrictEqual(byId.get(row.id), row), 'A record ID has conflicting content.');
+              } else {
+                byId.set(row.id, row);
+                tail.push(JSON.stringify(row) + '\n');
+              }
+            }
+            const speakers = new Map();
+            for (const row of byId.values()) {
+              check(!speakers.has(row.speakerId) || speakers.get(row.speakerId) === row.speaker, 'Conflicting speaker names.');
+              speakers.set(row.speakerId, row.speaker);
+              if (row.type === 'reply') {
+                check([row.source, ...row.targets].every(id => byId.get(id)?.type === 'text'), 'Missing reply reference.');
+              }
+            }
+            if (!tail.length) return null;
+            const added = Buffer.from(tail.join(''));
+            check(bytes.length + added.length <= maxBytes, 'The discussion exceeds 32 MiB.');
+            return Buffer.concat([bytes, added]);
+          }
+          async function main() {
+            const env = process.env;
+            const event = parse(readFileSync(env.GITHUB_EVENT_PATH, 'utf8'));
+            const ref = env.GITHUB_REF;
+            check(env.GITHUB_EVENT_NAME === 'workflow_dispatch' && ref === 'refs/heads/' + event.repository.default_branch,
+              'Run this workflow on the default branch.');
+            const { path, delta: input } = event.inputs;
+            check(typeof path === 'string' && path.endsWith('.jsonl') && !/[\\\x00-\x1f\x7f]/.test(path) &&
+              path.split('/').every(part => part && !['.', '..', '.git', '.github'].includes(part.toLowerCase())),
+              'Invalid discussion file path.');
+            // Gonglun limits the serialized inputs to 65,535 UTF-8 bytes per send.
+            check(typeof input === 'string' && Buffer.byteLength(JSON.stringify(event.inputs)) <= 65535, 'Invalid or oversized input.');
+            const delta = parse(input);
+            check(onlyKeys(delta, ['format', 'version', 'meetingId', 'baseHash', 'entries']) &&
+              delta.format === 'gonglun-meeting-delta' && delta.version === 1 && validId(delta.meetingId, '') &&
+              Array.isArray(delta.entries) && delta.entries.length, 'Invalid meeting delta.');
+            const baseHash = createHash('sha256').update(JSON.stringify([delta.meetingId, []])).digest('hex');
+            check(baseHash === delta.baseHash, 'Meeting fingerprint mismatch.');
+
+            // A bare repository reads Git objects directly. No working tree, repository scripts,
+            // symlinks, checkout filters or submodules are executed while processing an input path.
+            const cwd = mkdtempSync(join(env.RUNNER_TEMP, 'gonglun-'));
+            const identity = 'github-actions[bot]';
+            const email = '41898282+github-actions[bot]@users.noreply.github.com';
+            const gitEnv = { ...env, GIT_TERMINAL_PROMPT: '0', GIT_AUTHOR_NAME: identity, GIT_COMMITTER_NAME: identity,
+              GIT_AUTHOR_EMAIL: email, GIT_COMMITTER_EMAIL: email, GIT_CONFIG_COUNT: '1',
+              GIT_CONFIG_KEY_0: 'http.' + env.GITHUB_SERVER_URL + '/.extraHeader',
+              GIT_CONFIG_VALUE_0: 'Authorization: Basic ' + Buffer.from('x-access-token:' + env.GH_TOKEN).toString('base64') };
+            delete gitEnv.GH_TOKEN;
+            function command(args, input) {
+              return spawnSync('git', args, { cwd, env: gitEnv, input, maxBuffer: maxBytes + 1024 });
+            }
+            function git(args, input) {
+              const result = command(args, input);
+              check(result.status === 0, 'Git ' + args[0] + ' failed. Check repository access and branch rules.');
+              return result.stdout;
+            }
+            git(['init', '--bare', '--quiet', '.']);
+            git(['remote', 'add', 'origin', env.GITHUB_SERVER_URL + '/' + env.GITHUB_REPOSITORY + '.git']);
+            git(['config', 'remote.origin.promisor', 'true']);
+            git(['config', 'remote.origin.partialclonefilter', 'blob:none']);
+            let lastRejectedHead;
+            for (let attempt = 0; attempt < 9; attempt++) {
+              git(['fetch', '--quiet', '--depth=1', '--filter=blob:none', '--no-tags', 'origin', ref]);
+              const head = git(['rev-parse', 'FETCH_HEAD']).toString().trim();
+              const entry = git(['--literal-pathspecs', 'ls-tree', '--full-tree', '-z', head, '--', path]).toString('utf8');
+              const match = /^(100644|100755) blob ([a-f0-9]{40,64})\t/.exec(entry);
+              check(match && entry.slice(match[0].length) === path + '\0', 'Select an existing regular discussion file.');
+              check(Number(git(['cat-file', '-s', match[2]]).toString()) <= maxBytes, 'The discussion exceeds 32 MiB.');
+              const updated = appendRecords(git(['cat-file', 'blob', match[2]]), delta);
+              if (!updated) return;
+              check(head !== lastRejectedHead, 'GitHub rejected the update. Check write permissions and branch rules.');
+              const blob = git(['hash-object', '-w', '--stdin'], updated).toString().trim();
+              git(['read-tree', head]);
+              git(['update-index', '-z', '--index-info'], match[1] + ' blob ' + blob + '\t' + path + '\0');
+              const tree = git(['write-tree']).toString().trim();
+              const commit = git(['commit-tree', tree, '-p', head, '-m', '追加公论讨论记录']).toString().trim();
+              // The new commit has exactly this head as parent. The explicit lease also
+              // rejects a deleted or rewound branch, which a plain push could otherwise restore.
+              const lease = '--force-with-lease=' + ref + ':' + head;
+              if (command(['push', '--quiet', lease, 'origin', commit + ':' + ref]).status === 0) return;
+              lastRejectedHead = head;
+              await delay(200 * (attempt + 1) + Math.random() * 150);
+            }
+            throw new AppendError('The branch kept changing. Retry the same records.');
+          }
+          main().catch(error => {
+            console.error(error instanceof AppendError ? error.message : 'Unable to process the discussion update.');
+            process.exitCode = 1;
+          });
