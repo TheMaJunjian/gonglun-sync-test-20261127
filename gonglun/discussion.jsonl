@@ -7,3 +7,4 @@
 {"id":"local:48a4965e-049b-4d61-b164-5564830f9fb6","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-26T17:46:37.156Z","type":"text","text":"断网补读 A：这是手机离线期间的第一条。"}
 {"id":"local:089fa86c-9e24-4919-8d9b-d806c1636bd2","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-26T17:46:52.001Z","type":"text","text":"断网补读 B：这是手机离线期间的第二条。"}
 {"id":"local:773587aa-ac8f-4c6d-842b-c9367fd6f4ba","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-27T00:02:20.869Z","type":"text","text":"增量联测 P1：电脑发言，请雷电回复这条。"}
+{"id":"local:cf1cd9df-15e9-468a-a4e8-592d6e1f7a2d","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-27T00:04:27.582Z","type":"text","text":"流量对照 D1：电脑直接写入一条测试记录。"}
