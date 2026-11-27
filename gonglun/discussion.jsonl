@@ -6,3 +6,4 @@
 {"id":"local:f0779448-511b-4235-b014-3c20ec5b1ffe","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-26T17:45:00.552Z","type":"reply","source":"local:fe797890-768d-46e1-aa42-c2a02828dd87","targets":["local:a1f280bb-7ddf-49c5-a407-43714da3b4ee"]}
 {"id":"local:48a4965e-049b-4d61-b164-5564830f9fb6","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-26T17:46:37.156Z","type":"text","text":"断网补读 A：这是手机离线期间的第一条。"}
 {"id":"local:089fa86c-9e24-4919-8d9b-d806c1636bd2","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-26T17:46:52.001Z","type":"text","text":"断网补读 B：这是手机离线期间的第二条。"}
+{"id":"local:773587aa-ac8f-4c6d-842b-c9367fd6f4ba","speakerId":"local:user:5ee43546-62cc-4604-ac7f-0c81387883ff","speaker":"电脑测试员","at":"2026-11-27T00:02:20.869Z","type":"text","text":"增量联测 P1：电脑发言，请雷电回复这条。"}
