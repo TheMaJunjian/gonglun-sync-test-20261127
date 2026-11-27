@@ -1,4 +1,4 @@
-{"format":"gonglun-git-meeting","version":1,"id":"4f15fab1-2d8b-48f4-8289-bb830a9fd2f8","title":"公论 Issue 增量同步联测","createdAt":"2026-11-27T01:02:45.142Z","githubIssue":1,"commentCursor":"Y3Vyc29yOnYyOpHPAAAAAa2emq8="}
+{"format":"gonglun-git-meeting","version":1,"id":"4f15fab1-2d8b-48f4-8289-bb830a9fd2f8","title":"公论 Issue 增量同步联测","createdAt":"2026-11-27T01:02:45.142Z","githubIssue":1,"commentCursor":"Y3Vyc29yOnYyOpHPAAAAAa2e2Ds="}
 {"id":"local:64a53181-8637-40ca-9751-c3554753850d","speakerId":"local:user:dba99672-a116-45da-a936-bacb68c3fd51","speaker":"电脑测试员","at":"2026-11-27T01:03:08.367Z","type":"text","text":"Issue 联测 A：电脑向 GitHub 直接发送一条新发言。"}
 {"id":"local:95d4991a-e40d-4c22-97ee-ad4d44e302a6","speakerId":"local:user:dba99672-a116-45da-a936-bacb68c3fd51","speaker":"电脑测试员","at":"2026-11-27T01:03:47.242Z","type":"text","text":"Issue 联测 B：电脑再次发送，仅上传这条发言。"}
 {"id":"local:ccd41538-ab6b-47ab-aeda-7a8683837b23","speakerId":"local:user:003af1c1-af87-404b-bdf0-4128c82c5ea9","speaker":"雷电联测","at":"2026-11-27T01:07:12.152Z","type":"text","text":"雷电已收到电脑的 A，这是从手机发出的关联回复。"}
@@ -9,3 +9,5 @@
 {"id":"local:6091ab21-407b-4ad3-a9b7-92912218c34a","speakerId":"local:user:71f76fcb-f2da-400f-8e8e-58c6eef0f260","speaker":"TheMxJunJian","at":"2026-11-27T02:04:21.988Z","type":"text","text":"双账号联测：我是电脑端的新成员，请雷电端回复这条发言。"}
 {"id":"local:b5da5700-da52-43a7-9178-5f29435a0de6","speakerId":"local:user:003af1c1-af87-404b-bdf0-4128c82c5ea9","speaker":"雷电联测","at":"2026-11-27T02:05:14.154Z","type":"text","text":"雷电端已收到新成员的发言。这是原账号给电脑端的关联回复。"}
 {"id":"local:db0ecea0-7501-4eca-831d-66f0354c4cad","speakerId":"local:user:003af1c1-af87-404b-bdf0-4128c82c5ea9","speaker":"雷电联测","at":"2026-11-27T02:05:14.159Z","type":"reply","source":"local:b5da5700-da52-43a7-9178-5f29435a0de6","targets":["local:6091ab21-407b-4ad3-a9b7-92912218c34a"]}
+{"id":"local:eccb9ee9-e8cc-4d36-95cd-90823cb66a04","speakerId":"local:user:71f76fcb-f2da-400f-8e8e-58c6eef0f260","speaker":"TheMxJunJian","at":"2026-11-27T02:06:22.043Z","type":"text","text":"电脑端已看到你的回复，这条回给雷电端。"}
+{"id":"local:2dba3a1e-2c11-4736-99ec-5ff929b7a2ea","speakerId":"local:user:71f76fcb-f2da-400f-8e8e-58c6eef0f260","speaker":"TheMxJunJian","at":"2026-11-27T02:06:22.049Z","type":"reply","source":"local:eccb9ee9-e8cc-4d36-95cd-90823cb66a04","targets":["local:b5da5700-da52-43a7-9178-5f29435a0de6"]}
